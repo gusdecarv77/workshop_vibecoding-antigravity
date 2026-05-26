@@ -1,0 +1,57 @@
+##Prompt 1: A Estrutura Base e Persistência (Fase 1)Atue como um Desenvolvedor Python Sênior especialista em Streamlit e processamento de linguagem natural.
+Quero criar a estrutura inicial de um aplicativo educativo chamado 'Lesen', focado no aprendizado de alemão como língua estrangeira através da leitura de textos para níveis intermediários e avançados (B1 a C2), voltado para o público brasileiro.
+
+CONTEXTO E STACK:
+- Linguagem: Python 3.11+
+- Framework: Streamlit
+- Armazenamento temporário: st.session_state (para persistência de dados em memória)
+
+TAREFA:
+1. Configure a página para o modo "wide" com o título "Lesen - Aprendizado de Alemão por Leitura".
+2. Inicialize no st.session_state uma lista contendo pelo menos 3 textos fictícios em alemão. Cada texto deve ser um dicionário com: Título, Nível (B1, B2 ou C1/C2), Texto Completo e um mini-dicionário de Vocabulário de apoio (palavras difíceis em alemão e suas traduções para o português brasileiro).
+3. Na barra lateral (st.sidebar), crie um filtro por "Nível do Texto" (Selectbox) e, abaixo dele, um Selectbox para selecionar o título do texto filtrado.
+4. Na tela principal, exiba o título do texto selecionado, o nível em um badge/texto destacado, o corpo do texto em alemão e, logo abaixo, uma seção expansível (st.expander) contendo o "Vocabulário de Apoio" formatado.
+
+RESTRIÇÕES:
+- O aplicativo deve iniciar com o primeiro texto carregado automaticamente para não iniciar em branco.
+- Use elementos visuais nativos do Streamlit para separar o texto do vocabulário de forma elegante.
+
+SAÍDA ESPERADA:
+Retorne apenas o código Python completo, limpo e documentado em um único bloco.
+====================================================================================================================================================================================================================================================
+
+##Prompt 2: Analytics de Leitura e KPIs (Fase 2)
+O código anterior funcionou perfeitamente. Agora, vamos evoluir o sistema 'Lesen' adicionando a camada de analytics e inteligência de progresso para o estudante no mesmo chat histórico.
+
+TAREFA:
+1. Na barra lateral, abaixo dos seletores de texto, adicione um botão "Marcar Texto como Lido". Quando clicado, armazene o ID/Título do texto em uma lista de 'Textos Lidos' no st.session_state.
+2. Acima do texto principal na tela central, crie três cards de métricas (usando st.columns e st.metric):
+   - Card 1: Textos Lidos (quantidade total de textos marcados como lido).
+   - Card 2: Palavras Novas no Vocabulário (soma total de palavras únicas de vocabulário de apoio dos textos já lidos).
+   - Card 3: Nível de Domínio Atual (exiba o maior nível de texto que o usuário já leu, ex: "B2").
+3. Abaixo do texto, crie um layout de duas colunas: na coluna da esquerda fica o texto/vocabulário atual, e na coluna da direita adicione um gráfico de barras verticais usando Plotly Express (px.bar).
+4. O gráfico deve mostrar a quantidade de palavras de vocabulário disponíveis no app (eixo Y) distribuídas por cada Nível de texto (eixo X), usando cores corporativas elegantes (tons de azul e laranja/vermelho).
+
+RESTRIÇÕES:
+- Garanta que, ao clicar em "Marcar Texto como Lido", a tela seja atualizada imediatamente (st.rerun()) para recalcular as métricas de progresso.
+- Evite duplicar contagens de palavras se o usuário ler textos com palavras repetidas no vocabulário.
+
+SAÍDA ESPERADA:
+O código Python completo atualizado pronto para substituir o arquivo anterior.
+======================================================================================================================================================================================================================================================
+
+##Prompt 3: Cadastramento Avançado e Extração (Fase 3)
+Excelente. Para finalizar o nosso MVP do 'Lesen', precisamos adicionar uma feature de expansão de conteúdo e uma forma de extrair os dados de estudo do aluno brasileiros.
+
+TAREFA:
+1. Crie uma área na barra lateral (abaixo de tudo) ou em uma aba separada (st.tabs) chamada "Área do Professor" para cadastrar um novo texto.
+2. O formulário deve conter campos para: Título, Nível, Texto em Alemão e um campo de texto livre para o Vocabulário de apoio (onde o usuário digita no formato "Wort - Palavra" separado por quebras de linha).
+3. Crie uma função chamada `processar_vocabulario` que pegue essa string livre, transforme em um dicionário Python real e adicione o novo texto ao st.session_state.
+4. Na tela principal, abaixo do gráfico de analytics, adicione um botão de utilidade (st.download_button) para exportar a lista de todas as palavras de vocabulário que o aluno já "desbloqueou" (dos textos lidos) em formato CSV, servindo como um dicionário pessoal de revisão.
+5. Adicione um botão discreto na barra lateral para "Reiniciar Progresso" que zera os textos lidos, mas mantém os textos cadastrados.
+
+RESTRIÇÕES:
+- Faça a validação do formulário: se o texto em alemão ou o título forem enviados vazios, exiba um st.error na tela de cadastro.
+
+SAÍDA ESPERADA:
+O código final consolidado com todas as features integradas pronto para rodar no Antigravity IDE.
