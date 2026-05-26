@@ -1,0 +1,213 @@
+import pandas as pd
+import streamlit as st
+import plotly.express as px
+
+# 1. Configuração da página
+st.set_page_config(
+    page_title="CRM Inteligente - Pipeline de Vendas",
+    layout="wide"
+)
+
+# Inicialização do st.session_state com dados fictícios para o app não iniciar em branco
+if "leads" not in st.session_state:
+    st.session_state["leads"] = [
+        {
+            "Nome do Contato": "João Silva",
+            "Nome da Empresa": "Tech Solutions LTDA",
+            "Valor Estimado do Contrato": 15000.0,
+            "Status Atual": "Prospecção"
+        },
+        {
+            "Nome do Contato": "Maria Oliveira",
+            "Nome da Empresa": "Comércio Varejista SA",
+            "Valor Estimado do Contrato": 45000.0,
+            "Status Atual": "Negociação"
+        },
+        {
+            "Nome do Contato": "Carlos Santos",
+            "Nome da Empresa": "Indústria Alfa",
+            "Valor Estimado do Contrato": 120000.0,
+            "Status Atual": "Fechado"
+        },
+        {
+            "Nome do Contato": "Ana Costa",
+            "Nome da Empresa": "Serviços Digitais ME",
+            "Valor Estimado do Contrato": 8500.0,
+            "Status Atual": "Prospecção"
+        }
+    ]
+
+# Helper para formatar moeda em real brasileiro (R$)
+def formatar_moeda(valor):
+    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+# Função para calcular o Score de Prioridade de cada lead (Regra de Negócio)
+def calcular_score(row):
+    valor = row["Valor Estimado do Contrato"]
+    status = row["Status Atual"]
+    
+    if valor >= 10000.0 and status == "Negociação":
+        return "ALTO"
+    elif (5000.0 <= valor < 10000.0) or status == "Prospecção":
+        return "MÉDIO"
+    else:
+        return "BAIXO"
+
+# Exibe notificação flutuante de sucesso após redirecionamento/rerun
+if st.session_state.get("cadastro_sucesso"):
+    st.toast("Lead cadastrado com sucesso!", icon="✅")
+    st.session_state["cadastro_sucesso"] = False
+
+# Título da aplicação
+st.title("💼 CRM Inteligente - Pipeline de Vendas")
+
+# --- MÉTRICAS FINANCEIRAS ---
+leads = st.session_state["leads"]
+total_leads = len(leads)
+valor_negociacao = sum(lead["Valor Estimado do Contrato"] for lead in leads if lead["Status Atual"] == "Negociação")
+faturamento_realizado = sum(lead["Valor Estimado do Contrato"] for lead in leads if lead["Status Atual"] == "Fechado")
+
+# Exibição das métricas com st.columns e st.metric
+col_m1, col_m2, col_m3 = st.columns(3)
+with col_m1:
+    st.metric(label="Total de Leads Ativos", value=total_leads)
+with col_m2:
+    st.metric(label="Valor em Negociação", value=formatar_moeda(valor_negociacao))
+with col_m3:
+    st.metric(label="Faturamento Realizado", value=formatar_moeda(faturamento_realizado))
+
+st.markdown("---")
+
+# 2. Barra lateral com formulário para cadastro de novos leads
+with st.sidebar:
+    st.header("Cadastrar Novo Lead")
+    
+    with st.form(key="lead_form", clear_on_submit=True):
+        nome_contato = st.text_input("Nome do Contato")
+        nome_empresa = st.text_input("Nome da Empresa")
+        valor_estimado = st.number_input("Valor Estimado do Contrato", min_value=0.0, format="%.2f")
+        status_atual = st.selectbox("Status Atual", ["Prospecção", "Negociação", "Fechado"])
+        
+        submit_button = st.form_submit_button(label="Cadastrar Lead")
+        
+        if submit_button:
+            # Validação simples: campos de texto não podem estar vazios
+            if not nome_contato.strip() or not nome_empresa.strip():
+                st.error("Por favor, preencha o Nome do Contato e o Nome da Empresa.")
+            else:
+                novo_lead = {
+                    "Nome do Contato": nome_contato.strip(),
+                    "Nome da Empresa": nome_empresa.strip(),
+                    "Valor Estimado do Contrato": valor_estimado,
+                    "Status Atual": status_atual
+                }
+                st.session_state["leads"].append(novo_lead)
+                # Sinaliza que o cadastro ocorreu com sucesso para mostrar o toast no próximo rerun
+                st.session_state["cadastro_sucesso"] = True
+                # Atualiza a tela imediatamente para recalcular métricas e gráficos
+                st.rerun()
+                
+    # Botão discreto para limpar todos os dados na barra lateral
+    st.markdown("---")
+    st.subheader("Configurações do Sistema")
+    if st.button("🗑️ Limpar Todos os Dados", use_container_width=True, type="secondary"):
+        st.session_state["leads"] = []
+        st.session_state["cadastro_sucesso"] = False
+        st.rerun()
+
+# 3. Tela principal: exibição da tabela e gráfico lado a lado
+col_tabela, col_grafico = st.columns([1.2, 1])
+
+with col_tabela:
+    st.subheader("📋 Leads Cadastrados")
+    if leads:
+        df_leads = pd.DataFrame(leads)
+        
+        # Calcula o Score de Prioridade dinamicamente para cada linha da tabela
+        df_leads["Score de Prioridade"] = df_leads.apply(calcular_score, axis=1)
+        
+        # Exibição limpa e formatada do DataFrame
+        st.dataframe(
+            df_leads,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Valor Estimado do Contrato": st.column_config.NumberColumn(
+                    "Valor Estimado",
+                    format="R$ %.2f"
+                ),
+                "Score de Prioridade": st.column_config.SelectboxColumn(
+                    "Prioridade",
+                    options=["ALTO", "MÉDIO", "BAIXO"]
+                )
+            }
+        )
+        
+        # Botão de exportação para CSV (configurado para compatibilidade perfeita com Excel em português)
+        csv_data = df_leads.to_csv(index=False, sep=";").encode("utf-8-sig")
+        st.download_button(
+            label="📥 Exportar Leads (CSV)",
+            data=csv_data,
+            file_name="leads_crm.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+    else:
+        st.info("Nenhum lead cadastrado.")
+
+with col_grafico:
+    st.subheader("📊 Volume Financeiro por Status")
+    if leads:
+        df_leads = pd.DataFrame(leads)
+        
+        # Preparação dos dados garantindo a presença e a ordem correta de todos os status
+        status_ordem = ["Prospecção", "Negociação", "Fechado"]
+        df_base = pd.DataFrame({"Status Atual": status_ordem, "Valor Estimado do Contrato": [0.0, 0.0, 0.0]})
+        
+        df_summed = df_leads.groupby("Status Atual", as_index=False)["Valor Estimado do Contrato"].sum()
+        df_chart = pd.merge(df_base, df_summed, on="Status Atual", how="left", suffixes=("_base", "_real"))
+        df_chart["Valor Estimado do Contrato"] = df_chart["Valor Estimado do Contrato_real"].fillna(0.0)
+        
+        # Formata o valor monetário que aparecerá acima de cada barra do gráfico
+        df_chart["Valor Formatado"] = df_chart["Valor Estimado do Contrato"].apply(formatar_moeda)
+        
+        # Paleta elegante (tons corporativos de azul e verde)
+        color_map = {
+            "Prospecção": "#90CAF9",  # Azul claro suave
+            "Negociação": "#1E88E5",  # Azul corporativo vibrante
+            "Fechado": "#2E7D32"      # Verde floresta elegante
+        }
+        
+        # Gráfico de barras verticais usando Plotly Express
+        fig = px.bar(
+            df_chart,
+            x="Status Atual",
+            y="Valor Estimado do Contrato",
+            color="Status Atual",
+            color_discrete_map=color_map,
+            text="Valor Formatado",
+            labels={
+                "Status Atual": "Status",
+                "Valor Estimado do Contrato": "Volume (R$)"
+            },
+            category_orders={"Status Atual": status_ordem}
+        )
+        
+        # Ajustes de design e estética prêmio
+        fig.update_layout(
+            showlegend=False,
+            margin=dict(l=10, r=10, t=30, b=10),
+            height=350,
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            yaxis=dict(showgrid=True, gridcolor="rgba(200, 200, 200, 0.15)"),
+            xaxis=dict(showgrid=False)
+        )
+        fig.update_traces(
+            textposition="outside",
+            hovertemplate="<b>%{x}</b><br>Volume: %{text}<extra></extra>"
+        )
+        
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    else:
+        st.info("Cadastre leads para visualizar o gráfico.")
